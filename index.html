@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pedra, Papel e Tesoura</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    .choices {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .choice {
+      cursor: pointer;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .choice:hover {
+      background-color: #0056b3;
+    }
+    .status, .result {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pedra, Papel e Tesoura</h1>
+  <p class="status">Conectando ao servidor...</p>
+  <div class="choices">
+    <button class="choice" data-choice="pedra">🪨 Pedra</button>
+    <button class="choice" data-choice="papel">📄 Papel</button>
+    <button class="choice" data-choice="tesoura">✂️ Tesoura</button>
+  </div>
+  <div class="result"></div>
+
+  <script>
+    const statusEl = document.querySelector('.status');
+    const resultEl = document.querySelector('.result');
+    const choices = document.querySelectorAll('.choice');
+
+    // Conectar ao WebSocket
+    const socket = new WebSocket('ws://localhost:8080');
+
+    socket.onopen = () => {
+      statusEl.textContent = 'Conectado ao servidor. Aguardando outro jogador...';
+    };
+
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+
+      if (message.type === 'status') {
+        statusEl.textContent = message.message;
+      } else if (message.type === 'result') {
+        resultEl.textContent = `Resultado: ${message.message}`;
+        statusEl.textContent = 'Novo jogo iniciado! Faça sua escolha.';
+      }
+    };
+
+    socket.onclose = () => {
+      statusEl.textContent = 'Conexão perdida com o servidor.';
+    };
+
+    socket.onerror = (error) => {
+      console.error('Erro no WebSocket:', error);
+    };
+
+    // Enviar escolha ao servidor
+    choices.forEach((button) => {
+      button.addEventListener('click', () => {
+        const choice = button.getAttribute('data-choice');
+        socket.send(JSON.stringify({ type: 'choice', choice }));
+        statusEl.textContent = 'Escolha enviada. Aguardando outro jogador...';
+      });
+    });
+  </script>
+</body>
+</html>
