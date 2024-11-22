@@ -5,6 +5,7 @@ console.log('Servidor WebSocket rodando em ws://localhost:8080');
 
 let players = []; // Armazena os jogadores conectados
 let choices = {}; // Armazena as escolhas dos jogadores
+let scores = { player1: 0, player2: 0 }; // Placar
 
 // Determina o vencedor do jogo
 function determineWinner() {
@@ -18,8 +19,10 @@ function determineWinner() {
     (choice1 === 'tesoura' && choice2 === 'papel') ||
     (choice1 === 'papel' && choice2 === 'pedra')
   ) {
+    scores.player1++;
     return 'Jogador 1 venceu!';
   }
+  scores.player2++;
   return 'Jogador 2 venceu!';
 }
 
@@ -54,15 +57,30 @@ wss.on('connection', (ws) => {
         if (Object.keys(choices).length === 2) {
           const result = determineWinner();
 
-          // Envia o resultado para ambos os jogadores
+          // Envia o resultado e o placar para ambos os jogadores
           players.forEach((player) => {
-            player.ws.send(JSON.stringify({ type: 'result', message: result }));
+            player.ws.send(
+              JSON.stringify({ 
+                type: 'result', 
+                message: result, 
+                scores 
+              })
+            );
           });
 
-          // Reinicia o jogo
-          choices = {};
+          // Mantém as escolhas, aguardando o botão de reinício
         }
       }
+    }
+
+    if (message.type === 'restart') {
+      // Limpa escolhas para um novo jogo
+      choices = {};
+      players.forEach((player) => {
+        player.ws.send(
+          JSON.stringify({ type: 'status', message: 'Novo jogo iniciado! Faça sua escolha.' })
+        );
+      });
     }
   });
 
@@ -70,6 +88,7 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     players = players.filter((player) => player.ws !== ws);
     choices = {};
+    scores = { player1: 0, player2: 0 }; // Reseta o placar
     players.forEach((player) => {
       player.ws.send(JSON.stringify({ type: 'status', message: 'O outro jogador saiu. Aguardando novo jogador...' }));
     });

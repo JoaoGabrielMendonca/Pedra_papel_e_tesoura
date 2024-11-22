@@ -1,43 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pedra, Papel e Tesoura</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f4f4f4;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    .choices {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-top: 20px;
-    }
-    .choice {
-      cursor: pointer;
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-    .choice:hover {
-      background-color: #0056b3;
-    }
-    .status, .result {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #555;
-    }
-  </style>
+  <title>Pedra, papel e tesoura</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <h1>Pedra, Papel e Tesoura</h1>
@@ -48,11 +15,21 @@
     <button class="choice" data-choice="tesoura">✂️ Tesoura</button>
   </div>
   <div class="result"></div>
+  <div class="scores">
+    <p>Placar:</p>
+    <p>Jogador 1: <span id="score1">0</span></p>
+    <p>Jogador 2: <span id="score2">0</span></p>
+  </div>
+  <button id="restartButton" style="display: none;">Reiniciar</button>
 
   <script>
     const statusEl = document.querySelector('.status');
     const resultEl = document.querySelector('.result');
-    const choices = document.querySelectorAll('.choice');
+    const scoresEl1 = document.getElementById('score1');
+    const scoresEl2 = document.getElementById('score2');
+    const restartButton = document.getElementById('restartButton');
+    const choices = document.querySelector('.choices');
+    const choiceButtons = document.querySelectorAll('.choice');
 
     // Conectar ao WebSocket
     const socket = new WebSocket('ws://localhost:8080');
@@ -68,7 +45,12 @@
         statusEl.textContent = message.message;
       } else if (message.type === 'result') {
         resultEl.textContent = `Resultado: ${message.message}`;
-        statusEl.textContent = 'Novo jogo iniciado! Faça sua escolha.';
+        scoresEl1.textContent = message.scores.player1;
+        scoresEl2.textContent = message.scores.player2;
+
+        // Exibir o botão de reinício e ocultar as escolhas
+        restartButton.style.display = 'block';
+        choices.style.display = 'none';
       }
     };
 
@@ -81,12 +63,23 @@
     };
 
     // Enviar escolha ao servidor
-    choices.forEach((button) => {
+    choiceButtons.forEach((button) => {
       button.addEventListener('click', () => {
         const choice = button.getAttribute('data-choice');
         socket.send(JSON.stringify({ type: 'choice', choice }));
         statusEl.textContent = 'Escolha enviada. Aguardando outro jogador...';
       });
+    });
+
+    // Reiniciar o jogo
+    restartButton.addEventListener('click', () => {
+      socket.send(JSON.stringify({ type: 'restart' }));
+
+      // Resetar mensagens e exibir os botões de escolha
+      resultEl.textContent = '';
+      restartButton.style.display = 'none';
+      choices.style.display = 'flex';
+      statusEl.textContent = 'Novo jogo iniciado! Faça sua escolha.';
     });
   </script>
 </body>
